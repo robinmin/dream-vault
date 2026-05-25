@@ -184,6 +184,8 @@ bun src/cli/bin.ts health                     # verify vault is healthy
 # Open vault/ in Obsidian → File > Open Vault
 ```
 
-## License
-
-Private repository. All rights reserved.
+## References
+- [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
+- [nashsu/llm_wiki](https://github.com/nashsu/llm_wiki)
+- [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
+- [AgriciDaniel/claude-obsidian](https://github.com/AgriciDaniel/claude-obsidian)
