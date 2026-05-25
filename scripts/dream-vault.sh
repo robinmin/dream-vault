@@ -42,6 +42,8 @@ usage() {
 	echo "    install-skills   Install Claude Code skills for this project"
 	echo "    install-plugins  Install Obsidian community plugins"
 	echo "    setup_structure  Create vault folder structure and default templates"
+	echo "    setup_secrets    Set GitHub Actions secrets from .env"
+	echo "  list             Show all installed resources (tooling, skills, plugins, vault)"
 	echo "  publish          Run pre-publish checks and sync to cloud"
 	echo "  help             Show this help message"
 	echo ""
@@ -50,7 +52,9 @@ usage() {
 	echo "  $0 install install-skills"
 	echo "  $0 install install-plugins"
 	echo "  $0 install setup_structure"
+	echo "  $0 install setup_secrets"
 	echo "  $0 install           # Run all install sub-commands"
+	echo "  $0 list"
 	echo "  $0 publish"
 	echo "  $0 help"
 }
@@ -94,7 +98,7 @@ do_install_basic() {
 
 	info "Checking for obsidian CLI..."
 	if command -v obsidian &>/dev/null; then
-		success "Obsidian CLI found: $(obsidian --version 2>/dev/null || echo 'unknown version')"
+		success "Obsidian CLI found: $(obsidian version 2>/dev/null || echo 'unknown version')"
 	else
 		warn "Obsidian CLI not linked. Run:"
 		echo "  sudo ln -s '/Applications/Obsidian.app/Contents/Resources/app/obsidian.sh' /usr/local/bin/obsidian"
@@ -107,11 +111,18 @@ do_install_basic() {
 		warn "rclone not found. Run: brew install rclone"
 	fi
 
-	info "Checking for AWS CLI..."
-	if command -v aws &>/dev/null; then
-		success "AWS CLI found: $(aws --version 2>/dev/null)"
+	info "Checking for GitHub CLI..."
+	if command -v gh &>/dev/null; then
+		success "GitHub CLI found: $(gh --version 2>/dev/null | head -1)"
 	else
-		warn "AWS CLI not found. Run: brew install awscli"
+		warn "GitHub CLI not found. Run: brew install gh"
+	fi
+
+	info "Checking for Wrangler (Cloudflare)..."
+	if command -v wrangler &>/dev/null; then
+		success "Wrangler found: $(wrangler --version 2>/dev/null)"
+	else
+		warn "Wrangler not found. Run: npm install -g wrangler"
 	fi
 
 	info "Checking for Node.js..."
@@ -320,15 +331,24 @@ EOF
 # install-plugins — install Obsidian community plugins from GitHub releases
 # -----------------------------------------------------------------------------
 
-# Plugin registry: repo-name → GitHub repo path
-declare -A PLUGIN_REPOS=(
-	[templater - obsidian]="SilentVoid13/Templater"
-	[quickadd]="chhoumann/quickadd"
-	[obsidian - tasks - plugin]="obsidian-tasks-group/obsidian-tasks"
-	[obsidian - advanced - uri]="Vinzent03/obsidian-advanced-uri"
-	[obsidian - metatable]="joschahenningsen/obsidian-metatable"
-	[obsidian - local - rest - api]="adamgibbons/obsidian-local-rest-api"
-	[remotely - save]="remotely-save/remotely-save"
+# Plugin registry: parallel arrays (bash 3.2 compat — no declare -A)
+PLUGIN_NAMES=(
+	templater-obsidian
+	quickadd
+	obsidian-tasks-plugin
+	obsidian-advanced-uri
+	obsidian-metatable
+	obsidian-local-rest-api
+	remotely-save
+)
+PLUGIN_REPOS=(
+	SilentVoid13/Templater
+	chhoumann/quickadd
+	obsidian-tasks-group/obsidian-tasks
+	Vinzent03/obsidian-advanced-uri
+	joschahenningsen/obsidian-metatable
+	adamgibbons/obsidian-local-rest-api
+	remotely-save/remotely-save
 )
 
 do_install_plugins() {
@@ -340,8 +360,9 @@ do_install_plugins() {
 	installed=0
 	skipped=0
 
-	for plugin in "${!PLUGIN_REPOS[@]}"; do
-		repo="${PLUGIN_REPOS[$plugin]}"
+	for i in "${!PLUGIN_NAMES[@]}"; do
+		plugin="${PLUGIN_NAMES[$i]}"
+		repo="${PLUGIN_REPOS[$i]}"
 		target="$PLUGIN_DIR/$plugin"
 
 		if [ -f "$target/main.js" ]; then
@@ -434,6 +455,72 @@ EOF
 # -----------------------------------------------------------------------------
 # install — run all or specific install sub-command
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# setup_secrets — load .env and set GitHub Actions secrets via gh CLI
+# -----------------------------------------------------------------------------
+do_setup_secrets() {
+	bold "Configuring GitHub Actions secrets..."
+
+	ENV_FILE="$PROJECT_ROOT/.env"
+	if [ ! -f "$ENV_FILE" ]; then
+		warn ".env not found — skipping secrets setup."
+		info "Create .env from .env.example and fill in your Cloudflare R2 credentials."
+		return 0
+	fi
+
+	if ! command -v gh &>/dev/null; then
+		error "GitHub CLI (gh) not found. Install with: brew install gh"
+		return 1
+	fi
+
+	# Verify gh is authenticated
+	if ! gh auth status &>/dev/null; then
+		error "gh not authenticated. Run: gh auth login"
+		return 1
+	fi
+
+	# Load .env (skip comments and blank lines)
+	set -a
+	# shellcheck disable=SC1090
+	while IFS='=' read -r key value; do
+		case "$key" in
+		'' | \#*) continue ;;
+		esac
+		export "$key=$value"
+	done < <(grep -vE '^\s*(#|$)' "$ENV_FILE")
+	set +a
+
+	SECRETS=(
+		CLOUDFLARE_R2_ACCOUNT_ID
+		CLOUDFLARE_R2_BUCKET_NAME
+		CLOUDFLARE_R2_ACCESS_KEY_ID
+		CLOUDFLARE_R2_SECRET_ACCESS_KEY
+	)
+
+	set=0
+	skipped=0
+	for secret in "${SECRETS[@]}"; do
+		value=$(eval echo "\$$secret" 2>/dev/null || true)
+		if [ -z "$value" ]; then
+			warn "  $secret — empty or not defined in .env, skipping"
+			((skipped++)) || true
+			continue
+		fi
+		if echo "$value" | gh secret set "$secret" 2>/dev/null; then
+			success "  $secret"
+			((set++)) || true
+		else
+			error "  $secret — failed to set"
+		fi
+	done
+
+	bold "\nSecrets: $set set, $skipped skipped"
+	success "GitHub Actions secrets configured."
+}
+
+# -----------------------------------------------------------------------------
+# install — run all or specific install sub-command
+# -----------------------------------------------------------------------------
 do_install() {
 	case "${1:-all}" in
 	install-basic)
@@ -448,8 +535,8 @@ do_install() {
 	setup_structure)
 		do_setup_structure
 		;;
-	install-plugins)
-		do_install_plugins
+	setup_secrets)
+		do_setup_secrets
 		;;
 	all | "")
 		do_install_basic
@@ -470,8 +557,107 @@ do_install() {
 }
 
 # -----------------------------------------------------------------------------
-# publish — pre-publish checks + cloud sync
+# list — show all installed resources
 # -----------------------------------------------------------------------------
+do_list() {
+	bold "Dream Vault — Installed Resources"
+	echo ""
+
+	# Binaries
+	bold "Binaries"
+	for cmd in brew obsidian rclone gh wrangler node bun git; do
+		if command -v "$cmd" &>/dev/null; then
+			if [ "$cmd" = "obsidian" ]; then
+				ver=$(obsidian version 2>&1 | head -1)
+			else
+				ver=$("$cmd" --version 2>&1 | head -1)
+			fi
+			success "  $cmd: $ver"
+		else
+			warn "  $cmd: not installed"
+		fi
+	done
+	echo ""
+
+	# Obsidian plugins
+	bold "Obsidian Plugins"
+	PLUGIN_DIR="$VAULT_DIR/.obsidian/plugins"
+	if [ -d "$PLUGIN_DIR" ]; then
+		count=0
+		for dir in "$PLUGIN_DIR"/*/; do
+			[ -d "$dir" ] || continue
+			name=$(basename "$dir")
+			if [ -f "$dir/main.js" ]; then
+				# Try to read version from manifest.json
+				version=""
+				if [ -f "$dir/manifest.json" ]; then
+					version=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$dir/manifest.json" | head -1 | sed 's/.*: *"\([^"]*\)"/\1/')
+				fi
+				if [ -n "$version" ]; then
+					success "  $name ($version)"
+				else
+					success "  $name"
+				fi
+			else
+				warn "  $name (incomplete — no main.js)"
+			fi
+			((count++)) || true
+		done
+		info "  $count plugin(s) in $PLUGIN_DIR"
+	else
+		warn "  No plugins directory found"
+	fi
+	echo ""
+
+	# Claude Code skills
+	bold "Claude Code Skills"
+	SKILLS_DIR="$PROJECT_ROOT/.claude/skills"
+	if [ -d "$SKILLS_DIR" ]; then
+		count=0
+		for skill in "$SKILLS_DIR"/*/; do
+			[ -d "$skill" ] || continue
+			name=$(basename "$skill")
+			if [ -f "$skill/SKILL.md" ]; then
+				success "  $name"
+			else
+				warn "  $name (no SKILL.md)"
+			fi
+			((count++)) || true
+		done
+		info "  $count skill(s) in $SKILLS_DIR"
+	else
+		warn "  No skills directory found"
+	fi
+	echo ""
+
+	# Vault structure
+	bold "Vault Structure"
+	if [ -d "$VAULT_DIR" ]; then
+		for folder in .obsidian 00-meta 01-projects 02-notes 03-areas 04-resources 05-public 98_attachments 99_templates; do
+			if [ -d "$VAULT_DIR/$folder" ]; then
+				file_count=$(find "$VAULT_DIR/$folder" -type f | wc -l | tr -d ' ')
+				success "  $folder/ ($file_count files)"
+			else
+				warn "  $folder/ (missing)"
+			fi
+		done
+	else
+		error "  Vault directory not found at $VAULT_DIR"
+	fi
+	echo ""
+
+	# Git status
+	bold "Git Status"
+	cd "$PROJECT_ROOT"
+	branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+	info "  Branch: $branch"
+	changes=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+	if [ "$changes" -eq 0 ]; then
+		success "  Working tree clean"
+	else
+		warn "  $changes uncommitted change(s)"
+	fi
+}
 do_publish() {
 	bold "Running pre-publish checks..."
 	check_git || return 1
@@ -516,6 +702,9 @@ main() {
 	install)
 		shift
 		do_install "${1:-}"
+		;;
+	list)
+		do_list
 		;;
 	publish)
 		do_publish
