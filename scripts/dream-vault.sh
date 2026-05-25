@@ -42,9 +42,11 @@ usage() {
 	echo "    setup_structure  Create vault folder structure and default templates"
 	echo "    setup_secrets    Set GitHub Actions secrets from .env"
 	echo "  list             Show all installed resources (tooling, skills, plugins, vault)"
+	echo "  sync             [Emergency] Sync vault/ to Cloudflare R2 via rclone"
+	echo "                   (Normally, use GitHub Actions → git push instead)"
 	echo "  help             Show this help message"
 	echo ""
-	echo "Vault operations (publish, health, status, db:init) → bun src/cli/bin.ts <command>"
+	echo "Vault operations (publish, health, status, db:init) → bun run dv <command>"
 	echo ""
 	echo "Examples:"
 	echo "  $0 install install-basic"
@@ -646,6 +648,67 @@ do_list() {
 }
 
 # -----------------------------------------------------------------------------
+# sync — rclone vault/ to Cloudflare R2
+# -----------------------------------------------------------------------------
+do_sync() {
+	if ! command -v rclone &>/dev/null; then
+		error "rclone not found. Install with: brew install rclone"
+		return 1
+	fi
+
+	ENV_FILE="$PROJECT_ROOT/.env"
+	if [ ! -f "$ENV_FILE" ]; then
+		error ".env not found. Create from .env.example with R2 credentials."
+		return 1
+	fi
+
+	# Source .env as environment variables (KEY=VALUE format)
+	set -a
+	# shellcheck disable=SC1090
+	. "$ENV_FILE"
+	set +a
+
+	# Validate all 4 R2 vars are present
+	missing=""
+	[ -z "${CLOUDFLARE_R2_ACCOUNT_ID:-}" ] && missing="CLOUDFLARE_R2_ACCOUNT_ID "
+	[ -z "${CLOUDFLARE_R2_BUCKET_NAME:-}" ] && missing="${missing}CLOUDFLARE_R2_BUCKET_NAME "
+	[ -z "${CLOUDFLARE_R2_ACCESS_KEY_ID:-}" ] && missing="${missing}CLOUDFLARE_R2_ACCESS_KEY_ID "
+	[ -z "${CLOUDFLARE_R2_SECRET_ACCESS_KEY:-}" ] && missing="${missing}CLOUDFLARE_R2_SECRET_ACCESS_KEY"
+	if [ -n "$missing" ]; then
+		error "Missing R2 credentials in .env: $missing"
+		return 1
+	fi
+
+	R2_ENDPOINT="https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+	info "Syncing vault/ → r2://${CLOUDFLARE_R2_BUCKET_NAME}/vault/"
+	rclone sync "$VAULT_DIR" ":s3:${CLOUDFLARE_R2_BUCKET_NAME}/vault/" \
+		--s3-provider Cloudflare \
+		--s3-endpoint "$R2_ENDPOINT" \
+		--s3-access-key-id "$CLOUDFLARE_R2_ACCESS_KEY_ID" \
+		--s3-secret-access-key "$CLOUDFLARE_R2_SECRET_ACCESS_KEY" \
+		--s3-no-check-bucket \
+		--progress \
+		-v
+
+	# rclone exit codes (see https://rclone.org/docs/#list-of-exit-codes)
+	#   0  success
+	#   1  uncategorized error
+	#   5  temporary error (retries may fix)
+	#   7  fatal error
+	#   8  transfer limit exceeded
+	rc=$?
+	case $rc in
+	0) success "Sync complete." ;;
+	5) warn "Sync completed with temporary errors (exit $rc). Retry may succeed." ;;
+	*)
+		error "Sync failed with exit code $rc. See rclone output above."
+		return 1
+		;;
+	esac
+}
+
+# -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 main() {
@@ -661,6 +724,9 @@ main() {
 		;;
 	list)
 		do_list
+		;;
+	sync)
+		do_sync
 		;;
 	help | --help | -h)
 		usage
