@@ -78,7 +78,7 @@ Never use these in project output:
 ### 3.2 Project Structure
 
 ```
-dream-valut/
+dream-vault/
 ├── vault/                    # Obsidian vault content
 │   ├── .obsidian/           # Obsidian config
 │   ├── 99_templates/        # Note templates (daily, meeting, project, scratch, article)
