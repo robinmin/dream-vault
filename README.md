@@ -164,25 +164,53 @@ Auto-installed by `./scripts/dream-vault.sh install install-plugins`:
 
 Additional plugins (install via Obsidian UI): GitHub PR Autocomplete, Vault Inspector, Image auto upload, BRAT, Dataview.
 
-## Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [CONFIG.md](CONFIG.md) | Setup guide (prerequisites, R2 config, secrets, Bun install) |
-| [docs/01_PRD.md](docs/01_PRD.md) | Product requirements, goals, workflows, plugin list |
-| [docs/02_ARCH.md](docs/02_ARCH.md) | Technical architecture, component responsibilities, data flows |
-| [docs/03_ADR.md](docs/03_ADR.md) | 8 immutable Architecture Decision Records |
-
 ## Quick Start
 
 ```bash
-git clone <your-repo> dream-vault && cd dream-vault
+# 1. Clone & install
+git clone https://github.com/<you>/dream-vault.git && cd dream-vault
 bun install
-./scripts/dream-vault.sh install              # tools + plugins + vault structure
-bun src/cli/bin.ts db:init                    # initialize metadata DB
-bun src/cli/bin.ts health                     # verify vault is healthy
-# Open vault/ in Obsidian → File > Open Vault
+
+# 2. Initialize vault structure + plugins + skills
+./scripts/dream-vault.sh install
+
+# 3. Create Cloudflare R2 bucket
+wrangler login
+wrangler r2 bucket create dream-vault
+
+# 4. Configure GitHub Actions secrets
+cp .env.example .env            # fill in R2 credentials
+./scripts/dream-vault.sh install setup_secrets
+
+# 5. Initialize metadata DB & verify
+bun src/cli/bin.ts db:init
+bun src/cli/bin.ts health
+./scripts/dream-vault.sh list
+
+# 6. Open in Obsidian → File > Open Vault → vault/
 ```
+
+Full step-by-step guide: [docs/09_SETUP.md](docs/09_SETUP.md)
+
+### Common Commands
+
+| Task | Command |
+|------|--------|
+| Lint + format fix | `bun run autofix` |
+| Type check | `bun run typecheck` |
+| Health check | `bun src/cli/bin.ts health` |
+| Pre-publish checks | `./scripts/dream-vault.sh publish` |
+| Check installed resources | `./scripts/dream-vault.sh list` |
+
+## Documentation
+
+| Doc | Purpose |
+|-----|--------|
+| [docs/09_SETUP.md](docs/09_SETUP.md) | Full setup guide (R2, secrets, initialization) |
+| [docs/01_PRD.md](docs/01_PRD.md) | Product requirements, goals, workflows, plugin list |
+| [docs/02_ARCH.md](docs/02_ARCH.md) | Technical architecture, component responsibilities, data flows |
+| [docs/03_ADR.md](docs/03_ADR.md) | 8 immutable Architecture Decision Records |
+| [CONFIG.md](CONFIG.md) | Vault configuration reference |
 
 ## References
 - [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
