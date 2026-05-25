@@ -13,10 +13,12 @@
     "format": "biome format src/ --write",
     "format:check": "biome format src/",
     "typecheck": "tsc --noEmit",
+    "autofix": "biome check --write src/",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
-    "autofix": "biome check --write src/"
+    "dv": "bun src/cli/index.ts",
+    "build": "bun build src/cli/index.ts --compile --outfile scripts/dv"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
