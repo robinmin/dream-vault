@@ -479,6 +479,13 @@ do_setup_secrets() {
 		return 1
 	fi
 
+	# Verify git remote exists
+	if ! git remote get-url origin &>/dev/null; then
+		error "No git remote 'origin' found. Add one first:"
+		echo "  git remote add origin https://github.com/<you>/dream-vault.git"
+		return 1
+	fi
+
 	# Load .env (skip comments and blank lines)
 	set -a
 	# shellcheck disable=SC1090
@@ -499,6 +506,7 @@ do_setup_secrets() {
 
 	set=0
 	skipped=0
+	failed=0
 	for secret in "${SECRETS[@]}"; do
 		value=$(eval echo "\$$secret" 2>/dev/null || true)
 		if [ -z "$value" ]; then
@@ -506,15 +514,20 @@ do_setup_secrets() {
 			((skipped++)) || true
 			continue
 		fi
-		if echo "$value" | gh secret set "$secret" 2>/dev/null; then
+		if echo "$value" | gh secret set "$secret" 2>&1; then
 			success "  $secret"
 			((set++)) || true
 		else
 			error "  $secret — failed to set"
+			((failed++)) || true
 		fi
 	done
 
-	bold "\nSecrets: $set set, $skipped skipped"
+	bold "\nSecrets: $set set, $skipped skipped, $failed failed"
+	if [ "$failed" -gt 0 ]; then
+		error "Some secrets failed to set. See errors above."
+		return 1
+	fi
 	success "GitHub Actions secrets configured."
 }
 
