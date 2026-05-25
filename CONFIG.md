@@ -13,7 +13,7 @@
 
 ```bash
 # 1. Clone the repo
-git clone <REPO_URL> dream-valut && cd dream-valut
+git clone <REPO_URL> dream-vault && cd dream-vault
 
 # 2. Install dependencies
 bun install
