@@ -41,7 +41,7 @@ Components:
 ## Project Structure
 
 ```
-dream-valut/
+dream-vault/
 ├── src/
 │   ├── cli/
 │   │   ├── bin.ts              # Bun entry point (#!/usr/bin/env bun)
@@ -176,7 +176,7 @@ Additional plugins (install via Obsidian UI): GitHub PR Autocomplete, Vault Insp
 ## Quick Start
 
 ```bash
-git clone <your-repo> dream-vault && cd dream-valut
+git clone <your-repo> dream-vault && cd dream-vault
 bun install
 ./scripts/dream-vault.sh install              # tools + plugins + vault structure
 bun src/cli/bin.ts db:init                    # initialize metadata DB
