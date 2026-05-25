@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import type { BunSQLiteDatabase } from "drizzle-orm/bun-sqlite";
 
 /* eslint-disable */
 
@@ -19,7 +19,7 @@ interface HealthOptions {
  */
 export async function runHealthChecks(
 	// biome-ignore lint/suspicious/noExplicitAny: drizzle ORM generic requires any for dynamic schema
-	_db: BetterSQLite3Database<any>,
+	_db: BunSQLiteDatabase<any>,
 	vaultDir: string,
 	_options: HealthOptions,
 ): Promise<HealthCheckResult[]> {
@@ -160,6 +160,8 @@ function checkBrokenInternalLinks(vaultDir: string): HealthCheckResult[] {
 		for (const link of links) {
 			const target = link.match(/\[\[([^\]|]+)/)?.[1];
 			if (!target || target.startsWith("http")) continue;
+			// Directory links (trailing /) are valid in Obsidian
+			if (target.endsWith("/")) continue;
 			if (!allFiles.has(target) && !allFiles.has(target.toLowerCase())) {
 				broken++;
 			}
