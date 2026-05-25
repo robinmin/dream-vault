@@ -29,8 +29,8 @@ export async function setupLogging(level: string = "info") {
 				sinks: ["file"],
 			},
 			{
-				category: "logtape",
-				lowestLevel: "warning",
+				category: ["logtape", "meta"],
+				lowestLevel: "fatal",
 				sinks: ["file"],
 			},
 		],
