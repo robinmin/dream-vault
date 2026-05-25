@@ -1,0 +1,60 @@
+name: Vault CI
+
+on:
+  push:
+    branches: [main]
+    paths: ["vault/**"]
+  pull_request:
+    branches: [main]
+    paths: ["vault/**"]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint markdown
+        run: bunx markdownlint-cli2 "vault/**/*.md"
+
+      - name: Validate attachments
+        run: |
+          status=0
+          find vault/ -name "*.md" | while IFS= read -r f; do
+            grep -oE '!\[[^]]*\]\([^)]+\)' "$f" | sed 's/!.*](\([^)]*\)).*/\1/' | while IFS= read -r path; do
+              case "$path" in
+                http* | mailto* | obsidian*) continue ;;
+              esac
+              dir=$(dirname "$f")
+              abs="$dir/$path"
+              if [ ! -f "$abs" ]; then
+                echo "::error file=$f::Missing attachment: $path"
+                exit 1
+              fi
+            done || status=1
+          done
+          exit $status
+
+      - name: Validate frontmatter (public notes)
+        run: |
+          status=0
+          find vault/05-public/ -name "*.md" 2>/dev/null | while IFS= read -r f; do
+            head -1 "$f" | grep -q '^---' || continue
+            # Extract frontmatter block
+            fm=$(sed -n '1,/^---$/p' "$f" | head -n -1 | tail -n +2)
+            title=$(echo "$fm" | grep -E '^title:' | head -1)
+            date=$(echo "$fm" | grep -E '^date:' | head -1)
+            if [ -z "$title" ]; then
+              echo "::warning file=$f::Missing 'title' in frontmatter"
+            fi
+            if [ -z "$date" ]; then
+              echo "::warning file=$f::Missing 'date' in frontmatter"
+            fi
+          done
+          exit $status

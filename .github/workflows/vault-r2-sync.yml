@@ -1,0 +1,41 @@
+name: Sync Vault to R2
+
+on:
+  push:
+    branches: [main]
+    paths: ["vault/**"]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS CLI
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+        run: |
+          aws configure set aws_access_key_id "$AWS_ACCESS_KEY_ID"
+          aws configure set aws_secret_access_key "$AWS_SECRET_ACCESS_KEY"
+          aws configure set default.region auto
+
+      - name: Sync vault to R2
+        env:
+          CLOUDFLARE_R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+          CLOUDFLARE_R2_BUCKET_NAME: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}
+        run: |
+          ENDPOINT="https://${CLOUDFLARE_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          echo "Syncing vault/ to s3://${CLOUDFLARE_R2_BUCKET_NAME}/vault"
+          aws s3 sync vault/ "s3://${CLOUDFLARE_R2_BUCKET_NAME}/vault" \
+            --endpoint-url "$ENDPOINT" \
+            --delete \
+            --no-follow-symlinks
+
+      - name: Sync summary
+        if: always()
+        run: |
+          echo "::group::Sync completed"
+          echo "Bucket: ${{ secrets.CLOUDFLARE_R2_BUCKET_NAME }}"
+          echo "Triggered by: ${{ github.sha }}"
+          echo "::endgroup::"

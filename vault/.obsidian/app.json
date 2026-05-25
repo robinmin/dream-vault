@@ -1,0 +1,11 @@
+{
+  "legacyEditor": false,
+  "promptDelete": true,
+  "showUnsupportedFiles": true,
+  "attachmentFolderPath": "98_attachments",
+  "newFileLocation": "current",
+  "useMarkdownLinks": true,
+  "showLineNumber": true,
+  "readableLineLength": true,
+  "defaultViewMode": "source"
+}

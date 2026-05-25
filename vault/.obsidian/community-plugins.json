@@ -1,0 +1,12 @@
+{
+  "community-plugins": [
+    "github-pr-autocomplete",
+    "obsidian-local-rest-api",
+    "templater-obsidian",
+    "quickadd",
+    "obsidian-tasks-plugin",
+    "obsidian-advanced-uri",
+    "obsidian-metatable",
+    "remotely-save"
+  ]
+}
