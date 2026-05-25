@@ -1,9 +1,9 @@
+import { Database } from "bun:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import { getLogger } from "@logtape/logtape";
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { drizzle } from "drizzle-orm/bun-sqlite";
+import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import * as schema from "./schema.js";
 
 const logger = getLogger(["dream-vault", "db"]);
@@ -18,7 +18,7 @@ const DB_PATH = path.join(DB_DIR, "metadata.db");
  */
 export function initDb(dbPath: string = DB_PATH): {
 	db: ReturnType<typeof drizzle>;
-	sqlite: Database.Database;
+	sqlite: Database;
 } {
 	const dir = path.dirname(dbPath);
 	if (!fs.existsSync(dir)) {
@@ -26,9 +26,9 @@ export function initDb(dbPath: string = DB_PATH): {
 		logger.info`Created database directory: ${dir}`;
 	}
 
-	const sqlite = new Database(dbPath);
-	sqlite.pragma("journal_mode = WAL");
-	sqlite.pragma("foreign_keys = ON");
+	const sqlite = new Database(dbPath, { create: true });
+	sqlite.exec("PRAGMA journal_mode = WAL");
+	sqlite.exec("PRAGMA foreign_keys = ON");
 
 	const db = drizzle(sqlite, { schema });
 	logger.info`Database initialized: ${dbPath}`;
@@ -40,7 +40,7 @@ export function initDb(dbPath: string = DB_PATH): {
  */
 export function runMigrations(dbPath: string = DB_PATH): {
 	db: ReturnType<typeof drizzle>;
-	sqlite: Database.Database;
+	sqlite: Database;
 } {
 	const { db, sqlite } = initDb(dbPath);
 	const migrationsPath = path.resolve(import.meta.dir, "../../drizzle");
@@ -60,7 +60,7 @@ export function runMigrations(dbPath: string = DB_PATH): {
 /**
  * Fallback: create tables directly (dev mode without migration files).
  */
-function createTables(sqlite: Database.Database) {
+function createTables(sqlite: Database) {
 	sqlite.exec(`
     CREATE TABLE IF NOT EXISTS notes (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
