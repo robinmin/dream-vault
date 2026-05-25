@@ -9,7 +9,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 VAULT_DIR="$PROJECT_ROOT/vault"
-CONFIG_FILE="$PROJECT_ROOT/CONFIG.md"
 
 # -----------------------------------------------------------------------------
 # Color codes
@@ -18,7 +17,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
@@ -44,8 +42,9 @@ usage() {
 	echo "    setup_structure  Create vault folder structure and default templates"
 	echo "    setup_secrets    Set GitHub Actions secrets from .env"
 	echo "  list             Show all installed resources (tooling, skills, plugins, vault)"
-	echo "  publish          Run pre-publish checks and sync to cloud"
 	echo "  help             Show this help message"
+	echo ""
+	echo "Vault operations (publish, health, status, db:init) → bun src/cli/bin.ts <command>"
 	echo ""
 	echo "Examples:"
 	echo "  $0 install install-basic"
@@ -55,33 +54,7 @@ usage() {
 	echo "  $0 install setup_secrets"
 	echo "  $0 install           # Run all install sub-commands"
 	echo "  $0 list"
-	echo "  $0 publish"
 	echo "  $0 help"
-}
-
-# -----------------------------------------------------------------------------
-# Check prerequisites
-# -----------------------------------------------------------------------------
-check_obsidian() {
-	if ! command -v obsidian &>/dev/null; then
-		error "Obsidian CLI not found. Run: sudo ln -s '/Applications/Obsidian.app/Contents/Resources/app/obsidian.sh' /usr/local/bin/obsidian"
-		return 1
-	fi
-	return 0
-}
-
-check_git() {
-	if ! command -v git &>/dev/null; then
-		error "Git not found."
-		return 1
-	fi
-	return 0
-}
-
-check_rclone() {
-	if ! command -v rclone &>/dev/null; then
-		warn "rclone not found. Install with: brew install rclone"
-	fi
 }
 
 # -----------------------------------------------------------------------------
@@ -671,36 +644,6 @@ do_list() {
 		warn "  $changes uncommitted change(s)"
 	fi
 }
-do_publish() {
-	bold "Running pre-publish checks..."
-	check_git || return 1
-	check_rclone
-
-	info "Checking vault structure..."
-	if [ ! -d "$VAULT_DIR" ]; then
-		error "Vault directory not found at $VAULT_DIR"
-		return 1
-	fi
-	success "Vault directory found"
-
-	info "Checking Git status..."
-	cd "$PROJECT_ROOT"
-	if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
-		info "No uncommitted changes — nothing to publish"
-	else
-		warn "Uncommitted changes detected. Commit before publishing:"
-		git status --short
-	fi
-
-	info "Checking R2 configuration..."
-	if [ ! -f "$CONFIG_FILE" ]; then
-		warn "CONFIG.md not found — R2 credentials may not be configured"
-	fi
-
-	bold "Pre-publish checks complete."
-	info "Run 'git push' to trigger GitHub Actions → R2 sync."
-	info "Or manually run: aws s3 sync vault/ s3://<bucket>/vault --endpoint-url https://<endpoint> --delete"
-}
 
 # -----------------------------------------------------------------------------
 # Main
@@ -718,9 +661,6 @@ main() {
 		;;
 	list)
 		do_list
-		;;
-	publish)
-		do_publish
 		;;
 	help | --help | -h)
 		usage
