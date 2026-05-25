@@ -1,5 +1,5 @@
 {
-  "name": "dream-valut",
+  "name": "dream-vault",
   "version": "0.1.0",
   "description": "Obsidian vault template with AI-augmented content creation, GitHub sync, and Cloudflare R2 backup",
   "type": "module",
@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "autofix": "biome check --write src/"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
