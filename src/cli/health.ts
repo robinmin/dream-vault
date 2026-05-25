@@ -18,7 +18,7 @@ interface HealthOptions {
  * Run all vault health checks.
  */
 export async function runHealthChecks(
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// biome-ignore lint/suspicious/noExplicitAny: drizzle ORM generic requires any for dynamic schema
 	_db: BetterSQLite3Database<any>,
 	vaultDir: string,
 	_options: HealthOptions,
