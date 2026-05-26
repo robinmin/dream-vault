@@ -16,6 +16,7 @@ vault/.dream-vault/
 vault/.obsidian/workspace
 vault/.obsidian/workspace.json
 vault/.obsidian/plugins/*/data.json
+vault/.obsidian/plugins/remotely-save/main.js
 
 # OS
 .DS_Store
