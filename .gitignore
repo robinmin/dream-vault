@@ -40,3 +40,4 @@ logs/
 /scripts/dv
 /.pi/subagent-schedules
 /coverage
+/vendors
