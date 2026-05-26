@@ -20,14 +20,13 @@ Canonical stack defined in [ADR-008](docs/03_ADR.md).
 
 ## Architecture
 
-```
-Obsidian (local edit)
-    │
-    ▼
-git push → GitHub (source of truth)
-    │
-    ├──→ vault-ci.yml     (lint + validate)
-    └──→ vault-r2-sync.yml (mirror to R2, --delete)
+```mermaid
+flowchart TD
+    A[Obsidian<br>local edit] --> B[git push]
+    B --> C[GitHub<br>source of truth]
+    C --> D[vault-ci.yml<br>lint + validate]
+    C --> E[vault-r2-sync.yml<br>mirror to R2 --delete]
+    E --> F[(Cloudflare R2<br>backup)]
 ```
 
 **CLI separation:**
