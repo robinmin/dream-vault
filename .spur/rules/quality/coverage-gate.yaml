@@ -1,0 +1,21 @@
+# Coverage gate — enforce per-file line coverage threshold.
+# Reads from lcov output. Threshold set conservatively for a new project;
+# raise as test suite matures.
+
+rules:
+  - id: coverage-gate
+    description: "Per-file line coverage meets threshold (read from lcov)"
+    severity: info
+    evaluator:
+      type: coverage-gate
+      config:
+        lcovPath: coverage/lcov.info
+        threshold: 70
+        include:
+          - "src/**"
+        exclude:
+          - "**/*.test.ts"
+          - "**/*.spec.ts"
+          - "**/node_modules/**"
+          - "**/drizzle/**"
+          - "scripts/**"

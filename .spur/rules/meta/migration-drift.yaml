@@ -1,0 +1,68 @@
+# Meta-validation: Drizzle schema/migration drift detection.
+# Runs `drizzle-kit generate` with a sentinel name and checks whether
+# new migration files were produced. If so, the Drizzle schema has
+# diverged from the generated migrations — drift detected.
+#
+# Replaces the removed scripts/check-migration-drift.ts harness script.
+# Uses the exit-code evaluator with a shell command that replicates
+# the original script's logic.
+rules:
+  - id: migration-no-drift
+    description: >
+      Drizzle schema must be in sync with generated migrations. Runs
+      `drizzle-kit generate --name=drift-check` and verifies no new
+      migration files were produced. Drift-check artifacts are always
+      cleaned up regardless of result.
+    severity: error
+    evaluator:
+      type: exit-code
+      config:
+        command: sh
+        args:
+          - -c
+          - |
+            # Always start clean — remove any leftover drift-check files
+            find drizzle -name '*drift-check*' -exec rm -rf {} + 2>/dev/null || true
+
+            # Count SQL migration files (excluding any that might have escaped cleanup)
+            before=$(find drizzle -maxdepth 1 -name '*.sql' | wc -l | tr -d ' ')
+
+            # Run drizzle-kit generate with sentinel name
+            output=$(bun drizzle-kit generate --name=drift-check 2>&1)
+            rc=$?
+
+            if [ "$rc" -ne 0 ]; then
+              echo "ERROR: drizzle-kit generate failed (exit $rc):"
+              echo "$output"
+              exit 2
+            fi
+
+            # No schema changes = no drift
+            if echo "$output" | grep -q 'No schema changes'; then
+              echo '✓ No schema drift — migrations are in sync.'
+              exit 0
+            fi
+
+            # Drift detected — new migration files were created
+            after=$(find drizzle -maxdepth 1 -name '*.sql' | wc -l | tr -d ' ')
+            if [ "$after" -gt "$before" ]; then
+              # Clean up generated drift-check artifacts
+              find drizzle -name '*drift-check*' -exec rm -rf {} + 2>/dev/null || true
+
+              # Remove drift-check entry from journal
+              if [ -f drizzle/meta/_journal.json ]; then
+                yq -i -o=json 'del(.entries[] | select(.tag | contains("drift-check")))' drizzle/meta/_journal.json 2>/dev/null || true
+              fi
+
+              echo ''
+              echo '✗ Schema drift detected!'
+              echo '  Schema changed but migrations not regenerated.'
+              echo '  Run:  bun run db:generate'
+              echo ''
+              exit 1
+            fi
+
+            echo '✓ No schema drift — migrations are in sync.'
+    include:
+      - "drizzle/**/*.sql"
+      - "drizzle.config.ts"

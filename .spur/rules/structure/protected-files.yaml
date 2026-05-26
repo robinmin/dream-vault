@@ -1,0 +1,63 @@
+# Protected file rules — secret detection, git safety, env protection.
+# Adapted for Dream Vault project structure.
+
+include:
+  - "src/**/*.ts"
+  - "scripts/**"
+exclude:
+  - "**/*.test.ts"
+  - "**/node_modules/**"
+
+rules:
+  # ── Secret detection ────────────────────────────────────────────────
+  - id: no-hardcoded-secrets
+    description: "Hardcoded secrets detected — use .env for credentials"
+    evaluator:
+      type: secrets-scanner
+      config:
+        categories: [api-key, token, private-key, password]
+        scope:
+          include: ["src/**/*.ts", "scripts/**"]
+          exclude:
+            - "**/*.test.ts"
+            - ".env.example"
+
+  # ── Git safety ──────────────────────────────────────────────────────
+  - id: no-unsafe-git-commands
+    description: "Unsafe git commands (force push, reset --hard) can overwrite history or cause data loss"
+    evaluator:
+      type: regex
+      config:
+        pattern: "git\\s+.*reset\\s+(-H|--hard)\\b"
+    include:
+      - "**/*.sh"
+      - "package.json"
+      - ".github/**/*.yml"
+      - ".github/**/*.yaml"
+    exclude: []
+
+  # ── Env file write-protection ───────────────────────────────────────
+  - id: no-env-file-modification
+    description: ".env files must not be committed — use .env.example for templates"
+    evaluator:
+      type: path
+      config:
+        pattern: ".env*"
+        must: absent
+    include:
+      - "**/.env"
+      - "**/.env.*"
+    exclude:
+      - "**/.env.example"
+
+  # ── Protected workflow files ────────────────────────────────────────
+  - id: no-workflow-modification
+    description: ".github/workflows/ files must not be modified without explicit approval"
+    evaluator:
+      type: path
+      config:
+        pattern: ".github/workflows/*"
+        must: absent
+    include:
+      - ".github/workflows/*"
+    exclude: []

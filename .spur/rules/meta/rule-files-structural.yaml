@@ -1,0 +1,79 @@
+# Meta-validation: structural checks on .spur/rules/**/*.yaml files.
+# Ensures rule and preset YAML files have the minimum required fields
+# before the rule engine attempts to load them. Uses yq for field extraction
+# and runs via the exit-code evaluator.
+#
+# This replaces the functionality of the removed
+# scripts/check-jsonschema-drift.ts harness script.
+rules:
+  - id: rule-yaml-files-valid-structure
+    description: >
+      All YAML files in .spur/rules/ must parse as valid YAML and contain either
+      a 'rules' array (rule file) with id/description/evaluator.type per rule,
+      or 'name' + 'extends' array (preset file). This catches malformed files
+      before the rule engine loads them.
+    severity: error
+    evaluator:
+      type: exit-code
+      config:
+        command: sh
+        args:
+          - -c
+          - |
+            errors=0
+            for f in .spur/rules/**/*.yaml; do
+              [ -f "$f" ] || continue
+
+              # Must be valid YAML
+              if ! yq -e '.' "$f" > /dev/null 2>&1; then
+                echo "INVALID: $f is not valid YAML"
+                errors=$((errors+1))
+                continue
+              fi
+
+              if yq -e '.rules != null' "$f" > /dev/null 2>&1; then
+                # Rule file: rules must be an array
+                if ! yq -e '.rules | type == "!!seq"' "$f" > /dev/null 2>&1; then
+                  echo "INVALID: $f: .rules must be an array"
+                  errors=$((errors+1))
+                  continue
+                fi
+                count="$(yq '.rules | length' "$f")"
+                i=0
+                while [ "$i" -lt "$count" ]; do
+                  rid="$(yq ".rules[$i].id // \"\"" "$f")"
+                  if [ -z "$rid" ] || [ "$rid" = "null" ]; then
+                    echo "INVALID: $f: rules[$i] missing 'id'"
+                    errors=$((errors+1))
+                  fi
+                  rdesc="$(yq ".rules[$i].description // \"\"" "$f")"
+                  if [ -z "$rdesc" ] || [ "$rdesc" = "null" ]; then
+                    echo "INVALID: $f: rules[$i] missing 'description'"
+                    errors=$((errors+1))
+                  fi
+                  rtype="$(yq ".rules[$i].evaluator.type // \"\"" "$f")"
+                  if [ -z "$rtype" ] || [ "$rtype" = "null" ]; then
+                    echo "INVALID: $f: rules[$i] missing 'evaluator.type'"
+                    errors=$((errors+1))
+                  fi
+                  i=$((i+1))
+                done
+              elif yq -e '.name != null' "$f" > /dev/null 2>&1; then
+                # Preset file: must have name and extends array
+                pname="$(yq ".name // \"\"" "$f")"
+                if [ -z "$pname" ] || [ "$pname" = "null" ]; then
+                  echo "INVALID: $f: missing 'name'"
+                  errors=$((errors+1))
+                fi
+                if ! yq -e '.extends | type == "!!seq"' "$f" > /dev/null 2>&1; then
+                  echo "INVALID: $f: .extends must be an array"
+                  errors=$((errors+1))
+                fi
+              else
+                echo "INVALID: $f: must have either .rules (rule file) or .name + .extends (preset file)"
+                errors=$((errors+1))
+              fi
+            done
+            [ "$errors" -eq 0 ] || exit 1
+    include:
+      - ".spur/rules/**/*.yaml"

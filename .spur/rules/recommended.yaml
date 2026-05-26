@@ -1,0 +1,7 @@
+# Recommended preset — rules applicable to Dream Vault.
+# Use with: spur rule run --preset recommended
+name: recommended
+extends:
+  - meta
+  - structure
+  - quality/coverage-gate

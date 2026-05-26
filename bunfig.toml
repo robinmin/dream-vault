@@ -1,0 +1,19 @@
+telemetry = false
+
+[install]
+# Optimize package installation for monorepo speed
+smol = true
+exact = true
+
+[test]
+coverage = true
+coverageReporter = ["text", "lcov"]
+coverageThreshold = { lines = 0.9, functions = 0.9 }
+passWithNoTests = true
+pathIgnorePatterns = ["vendors/**"]
+coveragePathIgnorePatterns = ["**/tests/**/fixtures/**"]
+# preload = ["./apps/web/tests/setup-dom.ts"]
+
+# Keep coverage opt-in on the CLI (`bun test --coverage`).
+# The repo-level threshold gate lives in scripts/check-coverage.ts.
+# coverage = true
