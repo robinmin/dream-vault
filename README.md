@@ -99,27 +99,27 @@ dream-vault/
 
 ## Commands
 
-### Vault Operations (Bun CLI)
+### Setup
 
 ```bash
-bun run dv health              # 4 health checks (orphans, frontmatter, links, dirs)
-bun run dv health --fix        # Auto-fix issues where possible
-bun run dv status              # Show vault directory + DB status
-bun run dv publish             # Pre-publish checks (structure, git, config)
-bun run dv db:init             # Initialize SQLite metadata database
+bun run dv:install                  # run all install steps
+bun run dv:install install-basic    # check core tooling
+bun run dv:install install-plugins  # download community plugins
+bun run dv:install install-skills   # install Claude Code skills
+bun run dv:install setup_structure  # create vault folder structure
+bun run dv:install setup_secrets    # set GitHub Actions secrets from .env
+bun run dv:list                     # show installed resources
+bun run dv:sync                     # [emergency] rclone sync vault/ → R2
 ```
 
-### Resource Management (Shell CLI)
+### Vault Operations
 
 ```bash
-./scripts/dream-vault.sh install                          # run all install steps
-./scripts/dream-vault.sh install install-basic            # check core tooling
-./scripts/dream-vault.sh install install-plugins          # download community plugins
-./scripts/dream-vault.sh install install-skills           # install Claude Code skills
-./scripts/dream-vault.sh install setup_structure          # create vault folder structure
-./scripts/dream-vault.sh install setup_secrets            # set GitHub Actions secrets from .env
-./scripts/dream-vault.sh list                             # show installed resources
-./scripts/dream-vault.sh sync                             # [emergency] rclone sync vault/ → R2
+bun run dv health                   # 4 health checks (orphans, frontmatter, links, dirs)
+bun run dv health --fix             # Auto-fix issues where possible
+bun run dv status                   # Show vault directory + DB status
+bun run dv publish                  # Pre-publish checks (structure, git, config)
+bun run dv db:init                  # Initialize SQLite metadata database
 ```
 
 ### Development
@@ -171,17 +171,17 @@ Zod schemas in `src/db/schemas.ts` validate:
 
 ## Obsidian Plugins
 
-Auto-installed by `./scripts/dream-vault.sh install install-plugins`:
+Auto-installed by `bun run dv:install install-plugins`:
 
 | Plugin | Source |
 |--------|--------|
-| Templater | SilentVoid13/Templater |
-| QuickAdd | chhoumann/quickadd |
-| Obsidian Tasks | obsidian-tasks-group/obsidian-tasks |
-| Advanced URI | Vinzent03/obsidian-advanced-uri |
-| Metatable | joschahenningsen/obsidian-metatable |
-| Local REST API | adamgibbons/obsidian-local-rest-api |
-| Remotely Save | remotely-save/remotely-save |
+| Templater | SilentVoid13/Templater❌ |
+| QuickAdd | chhoumann/quickadd❌ |
+| Obsidian Tasks | obsidian-tasks-group/obsidian-tasks❌ |
+| Advanced URI | Vinzent03/obsidian-advanced-uri❌ |
+| Metatable | joschahenningsen/obsidian-metatable❌ |
+| Local REST API | adamgibbons/obsidian-local-rest-api❌ |
+| Remotely Save | remotely-save/remotely-save❌ |
 
 Additional plugins (install via Obsidian UI): GitHub PR Autocomplete, Vault Inspector, Image auto upload, BRAT, Dataview.
 
@@ -193,7 +193,7 @@ git clone https://github.com/<you>/dream-vault.git && cd dream-vault
 bun install
 
 # 2. Initialize vault structure + plugins + skills
-./scripts/dream-vault.sh install
+bun run dv:install
 
 # 3. Create Cloudflare R2 bucket
 wrangler login
@@ -201,12 +201,12 @@ wrangler r2 bucket create dream-vault
 
 # 4. Configure GitHub Actions secrets
 cp .env.example .env            # fill in R2 credentials
-./scripts/dream-vault.sh install setup_secrets
+bun run dv:install setup_secrets
 
 # 5. Initialize metadata DB & verify
 bun run dv db:init
 bun run dv health
-./scripts/dream-vault.sh list
+bun run dv:list
 
 # 6. Open in Obsidian → File > Open Vault → vault/
 ```
@@ -230,11 +230,11 @@ Full step-by-step guide: [docs/09_SETUP.md](docs/09_SETUP.md)
 
 | Doc | Purpose |
 |-----|--------|
-| [docs/09_SETUP.md](docs/09_SETUP.md) | Full setup guide (R2, secrets, initialization) |
 | [docs/01_PRD.md](docs/01_PRD.md) | Product requirements, goals, workflows, plugin list |
 | [docs/02_ARCH.md](docs/02_ARCH.md) | Technical architecture, component responsibilities, data flows |
 | [docs/03_ADR.md](docs/03_ADR.md) | 8 immutable Architecture Decision Records |
-| [CONFIG.md](CONFIG.md) | Vault configuration reference |
+| [docs/08_CONFIG.md](docs/08_CONFIG.md) | Vault configuration reference |
+| [docs/09_SETUP.md](docs/09_SETUP.md) | Full setup guide (R2, secrets, initialization) |
 
 ## References
 - [karpathy/llm-wiki.md](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f)
