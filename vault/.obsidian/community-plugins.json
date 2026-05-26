@@ -1,12 +1,11 @@
-{
-  "community-plugins": [
-    "github-pr-autocomplete",
-    "obsidian-local-rest-api",
-    "templater-obsidian",
-    "quickadd",
-    "obsidian-tasks-plugin",
-    "obsidian-advanced-uri",
-    "obsidian-metatable",
-    "remotely-save"
-  ]
-}
+[
+  "templater-obsidian",
+  "quickadd",
+  "obsidian-advanced-uri",
+  "obsidian-local-rest-api",
+  "remotely-save",
+  "obsidian-kanban",
+  "dataview",
+  "calendar",
+  "periodic-notes"
+]
