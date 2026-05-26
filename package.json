@@ -8,7 +8,10 @@
     "dream-vault": "./src/cli/index.ts"
   },
   "scripts": {
-    "check": "biome check src/",
+    "check": "bun biome check src/ --error-on-warnings && bun run typecheck && bun run test-pre-check",
+    "test-pre-check": "spur rule run --preset recommended --fail-on warning",
+    "test-post-check": "spur rule run --preset recommended --rule coverage-gate --fail-on warning",
+
     "lint": "biome lint src/",
     "format": "biome format src/ --write",
     "format:check": "biome format src/",
@@ -18,7 +21,10 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "dv": "bun src/cli/index.ts",
-    "build": "bun build src/cli/index.ts --compile --outfile scripts/dv"
+    "build": "bun build src/cli/index.ts --compile --outfile scripts/dv",
+    "dv:install": "./scripts/dream-vault.sh install",
+    "dv:list": "./scripts/dream-vault.sh list",
+    "dv:sync": "./scripts/dream-vault.sh sync"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
