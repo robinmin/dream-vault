@@ -174,13 +174,16 @@ Auto-installed by `bun run dv:install install-plugins`:
 
 | Plugin | Source |
 |--------|--------|
-| Templater | SilentVoid13/Templater❌ |
-| QuickAdd | chhoumann/quickadd❌ |
+| Templater | SilentVoid13/Templater |
+| QuickAdd | chhoumann/quickadd |
 | Obsidian Tasks | obsidian-tasks-group/obsidian-tasks❌ |
-| Advanced URI | Vinzent03/obsidian-advanced-uri❌ |
+| Advanced URI | Vinzent03/obsidian-advanced-uri |
 | Metatable | joschahenningsen/obsidian-metatable❌ |
-| Local REST API | adamgibbons/obsidian-local-rest-api❌ |
-| Remotely Save | remotely-save/remotely-save❌ |
+| Local REST API | adamgibbons/obsidian-local-rest-api |
+| Remotely Save | remotely-save/remotely-save |
+| calendar |  |
+| dataview |  |
+| periodic-notes |  |
 
 Additional plugins (install via Obsidian UI): GitHub PR Autocomplete, Vault Inspector, Image auto upload, BRAT, Dataview.
 
