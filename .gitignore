@@ -39,3 +39,4 @@ Thumbs.db
 logs/
 /scripts/dv
 /.pi/subagent-schedules
+/coverage
