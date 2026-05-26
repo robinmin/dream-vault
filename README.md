@@ -221,8 +221,9 @@ Full step-by-step guide: [docs/09_SETUP.md](docs/09_SETUP.md)
 | Type check | `bun run typecheck` |
 | Health check | `bun run dv health` |
 | Pre-publish checks | `bun run dv publish` |
-| Emergency R2 sync | `./scripts/dream-vault.sh sync` |
-| Check installed resources | `./scripts/dream-vault.sh list` |
+| Emergency R2 sync | `bun run dv:sync` |
+| Check installed resources | `bun run dv:list` |
+| Install all resources | `bun run dv:install` |
 | Build standalone binary | `bun run build` |
 
 ## Documentation
